@@ -1,0 +1,182 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CLIENT
+  COACH
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum PlanStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CheckInStatus {
+  PENDING_REVIEW
+  REVIEWED
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique @db.VarChar(255)
+  passwordHash  String         @map("password_hash") @db.VarChar(255)
+  role          Role           @default(CLIENT)
+  firstName     String         @map("first_name") @db.VarChar(100)
+  lastName      String         @map("last_name") @db.VarChar(100)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  
+  clientProfile ClientProfile?
+  coachProfile  CoachProfile?
+  
+  sentMessages     Message[]   @relation("SentMessages")
+  receivedMessages Message[]   @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+model ClientProfile {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @unique @map("user_id") @db.Uuid
+  coachId            String?            @map("coach_id") @db.Uuid
+  goal               String?            @db.VarChar(255)
+  height             Decimal?           @db.Decimal(5, 2)
+  currentWeight      Decimal?           @map("current_weight") @db.Decimal(5, 2)
+  medicalNotes       String?            @map("medical_notes") @db.Text
+  subscriptionStatus SubscriptionStatus @default(ACTIVE) @map("subscription_status")
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coach        CoachProfile?  @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  workoutPlans WorkoutPlan[]
+  checkIns     CheckIn[]
+  nutritionPlans NutritionPlan[]
+
+  @@map("client_profiles")
+}
+
+model CoachProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @map("user_id") @db.Uuid
+  bio                String?  @db.Text
+  maxClientCapacity  Int      @default(20) @map("max_client_capacity")
+  specialization     String?  @db.VarChar(255)
+  rating             Decimal? @db.Decimal(3, 2)
+
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clients      ClientProfile[]
+  workoutPlans WorkoutPlan[]
+  nutritionPlans NutritionPlan[]
+
+  @@map("coach_profiles")
+}
+
+model Exercise {
+  id           String                   @id @default(uuid()) @db.Uuid
+  name         String                   @db.VarChar(255)
+  targetMuscle String                   @map("target_muscle") @db.VarChar(100)
+  videoUrl     String?                  @map("video_url") @db.VarChar(500)
+  instructions String?                  @db.Text
+  
+  sessionExercises WorkoutSessionExercise[]
+
+  @@map("exercises")
+}
+
+model WorkoutPlan {
+  id          String     @id @default(uuid()) @db.Uuid
+  clientId    String     @map("client_id") @db.Uuid
+  coachId     String     @map("coach_id") @db.Uuid
+  title       String     @db.VarChar(255)
+  phaseNumber Int        @default(1) @map("phase_number")
+  status      PlanStatus @default(ACTIVE)
+
+  client   ClientProfile    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coach    CoachProfile     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  sessions WorkoutSession[]
+
+  @@map("workout_plans")
+}
+
+model WorkoutSession {
+  id            String   @id @default(uuid()) @db.Uuid
+  workoutPlanId String   @map("workout_plan_id") @db.Uuid
+  dayName       String   @map("day_name") @db.VarChar(100)
+  
+  workoutPlan WorkoutPlan              @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exercises   WorkoutSessionExercise[]
+
+  @@map("workout_sessions")
+}
+
+model WorkoutSessionExercise {
+  id               String @id @default(uuid()) @db.Uuid
+  workoutSessionId String @map("workout_session_id") @db.Uuid
+  exerciseId       String @map("exercise_id") @db.Uuid
+  targetSets       Int    @map("target_sets")
+  targetReps       String @map("target_reps") @db.VarChar(50)
+  targetRpe        Int?   @map("target_rpe")
+
+  session  WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("workout_session_exercises")
+}
+
+model NutritionPlan {
+  id            String @id @default(uuid()) @db.Uuid
+  clientId      String @map("client_id") @db.Uuid
+  coachId       String @map("coach_id") @db.Uuid
+  targetCalories Int   @map("target_calories")
+  targetProteinG Int   @map("target_protein_g")
+  targetCarbsG   Int   @map("target_carbs_g")
+  targetFatsG    Int   @map("target_fats_g")
+  notes          String? @db.Text
+
+  client ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coach  CoachProfile  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@map("nutrition_plans")
+}
+
+model CheckIn {
+  id                String        @id @default(uuid()) @db.Uuid
+  clientId          String        @map("client_id") @db.Uuid
+  submittedDate     DateTime      @default(now()) @map("submitted_date") @db.Date
+  weight            Decimal       @db.Decimal(5, 2)
+  sleepQualityScore Int           @map("sleep_quality_score")
+  stressLevelScore  Int           @map("stress_level_score")
+  clientNotes       String?       @map("client_notes") @db.Text
+  progressPhotos    Json?         @map("progress_photos")
+  coachFeedback     String?       @map("coach_feedback") @db.Text
+  status            CheckInStatus @default(PENDING_REVIEW)
+
+  client ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("check_ins")
+}
+
+model Message {
+  id            String   @id @default(uuid()) @db.Uuid
+  senderId      String   @map("sender_id") @db.Uuid
+  recipientId   String   @map("recipient_id") @db.Uuid
+  content       String   @db.Text
+  attachmentUrl String?  @map("attachment_url") @db.VarChar(500)
+  sentAt        DateTime @default(now()) @map("sent_at")
+
+  sender    User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}

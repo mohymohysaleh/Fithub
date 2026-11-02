@@ -1,0 +1,82 @@
+# ─── Environment & Secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+wheels/
+
+# ─── Virtual Environment ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+.python-version
+
+# ─── Django ───────────────────────────────────────────────────────────────────
+db.sqlite3
+db.sqlite3-journal
+*.log
+local_settings.py
+media/
+staticfiles/
+static_root/
+
+# ─── Prisma ───────────────────────────────────────────────────────────────────
+node_modules/
+/generated/prisma
+
+# ─── Testing & Coverage ───────────────────────────────────────────────────────
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+nosetests.xml
+test-results/
+
+# ─── Type Checkers & Linters ──────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# ─── IDE & Editor Specific ────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history/
+*.sublime-workspace
+
+# ─── AI / Agent Tool Dirs ─────────────────────────────────────────────────────
+.agents/
+.claude/
+.windsurf/
+
+# ─── OS Files ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
